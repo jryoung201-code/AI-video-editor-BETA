@@ -1,31 +1,44 @@
 # AI Video Generator
 
-A prompt-to-video web app scaffold with a clean browser UI, a generation job API, and optional TinyFish-assisted research for source-backed scripts and storyboards.
+A prompt-to-video web app scaffold with a visual creator workspace, a backend generation-job API, and optional TinyFish-powered research for source-backed scripts and storyboards.
 
 ## Current status
 
-This repository started empty. The first commit establishes the app scaffold. TinyFish is a web research/automation service, not itself a video renderer; connect a text-to-video provider for rendered clips.
+This repository started empty, so this build creates the initial application. The UI and project-job API are implemented. The default video provider is intentionally a mock/starter adapter: an actual MP4 renderer requires implementing a provider adapter for a text-to-video API.
+
+TinyFish provides web search/fetch/automation capabilities. It can help gather reference material and verify facts for a video, but it is not itself a video renderer.
 
 ## Stack
 
 - Next.js App Router + TypeScript
+- React
 - Tailwind CSS
-- Server-side generation API adapter
-- Optional TinyFish Search API for research (keep credentials on the server)
+- Server-side generation API
+- Optional TinyFish research proxy endpoint
 
 ## Setup
 
 1. Install Node.js 20+.
 2. Run `npm install`.
-3. Copy `.env.example` to `.env.local` and add your video provider credentials.
-4. Run `npm run dev`.
-
-The UI can create project prompts and storyboards immediately. Rendering requires configuring a compatible provider in `src/lib/video-provider.ts`.
+3. Copy `.env.example` to `.env.local`.
+4. Add configuration values as needed.
+5. Run `npm run dev`.
+6. Open `http://localhost:3000`.
 
 ## Environment
 
-- `VIDEO_PROVIDER`: currently `mock` by default; configure a provider adapter before production rendering.
-- `VIDEO_PROVIDER_API_KEY`: secret key for your selected video generation provider.
-- `TINYFISH_API_KEY`: optional; used only for research functionality.
+- `VIDEO_PROVIDER=mock`: default starter mode. To render clips, implement a provider adapter in `src/lib/video-provider.ts`.
+- `VIDEO_PROVIDER_API_KEY`: server-side API key for your selected text-to-video provider.
+- `TINYFISH_API_KEY`: optional server-side TinyFish key.
+- `TINYFISH_SEARCH_API_URL`: optional HTTPS endpoint for the TinyFish Search API or your server-side TinyFish gateway. Set this to the endpoint for your TinyFish account and the request/response contract it supports.
 
-Never expose API keys in client-side code or commit them to GitHub.
+The research proxy sends `POST { "query": "..." }` to the configured endpoint using a Bearer token. It never sends credentials to browser code. It normalizes common `results` / `organic_results` result arrays where possible.
+
+## Before production
+
+- Add a real video provider adapter with submission, status polling, and asset download support.
+- Persist jobs in a database and add user authentication/quotas.
+- Set request rate limits and file-size limits.
+- Configure TinyFish's current Search API endpoint/schema based on your account's docs.
+- Keep all API keys in environment variables; never commit secrets.
+
