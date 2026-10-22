@@ -14,7 +14,7 @@ TinyFish provides web search/fetch/automation capabilities. It can help gather r
 - React
 - Tailwind CSS
 - Server-side generation API
-- Optional TinyFish research proxy endpoint
+- Optional TinyFish research proxy endpoint and UI
 
 ## Setup
 
@@ -30,7 +30,7 @@ TinyFish provides web search/fetch/automation capabilities. It can help gather r
 - `VIDEO_PROVIDER=mock`: default starter mode. To render clips, implement a provider adapter in `src/lib/video-provider.ts`.
 - `VIDEO_PROVIDER_API_KEY`: server-side API key for your selected text-to-video provider.
 - `TINYFISH_API_KEY`: optional server-side TinyFish key.
-- `TINYFISH_SEARCH_API_URL`: optional HTTPS endpoint for the TinyFish Search API or your server-side TinyFish gateway. Set this to the endpoint for your TinyFish account and the request/response contract it supports.
+- `TINYFISH_SEARCH_API_URL`: optional HTTPS endpoint for the TinyFish Search API or your server-side TinyFish gateway. Set this to the endpoint for your TinyFish account and the request/response contract it supports. The Research assistant panel calls this endpoint and displays normalized source results.
 
 The research proxy sends `POST { "query": "..." }` to the configured endpoint using a Bearer token. It never sends credentials to browser code. It normalizes common `results` / `organic_results` result arrays where possible.
 
