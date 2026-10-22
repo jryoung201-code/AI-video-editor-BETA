@@ -27,6 +27,9 @@ export default function Home() {
   const [job, setJob] = useState<Job | null>(null);
   const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
   const [storyboardLoading, setStoryboardLoading] = useState(false);
+  const [researchQuery, setResearchQuery] = useState("");
+  const [researchLoading, setResearchLoading] = useState(false);
+  const [researchResult, setResearchResult] = useState<{ query: string; results?: { title?: string; url?: string; snippet?: string }[]; error?: string; raw?: unknown } | null>(null);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("generator");
 
@@ -78,6 +81,31 @@ export default function Home() {
       setError(err instanceof Error ? err.message : "Storyboard creation failed.");
     } finally {
       setStoryboardLoading(false);
+    }
+  }
+
+  async function runResearch() {
+    setResearchResult(null);
+    const query = researchQuery.trim() || prompt.trim();
+    if (!query) {
+      setError("Enter a research topic or write a video prompt first.");
+      return;
+    }
+    setResearchLoading(true);
+    setError("");
+    try {
+      const response = await fetch("/api/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Research request failed.");
+      setResearchResult(data);
+    } catch (err) {
+      setResearchResult({ query, error: err instanceof Error ? err.message : "Research request failed." });
+    } finally {
+      setResearchLoading(false);
     }
   }
 
@@ -190,7 +218,19 @@ export default function Home() {
                   <div className="research">
                     <div className="research-title">Research assistant <span style={{ color: "var(--lime)", fontSize: 10 }}>OPTIONAL</span></div>
                     <p>TinyFish can research real web sources for factual videos, collect reference links, and help ground scripts. It does not render video frames by itself.</p>
-                    <div className="research-row"><span className="research-icon">⌕</span><span><strong style={{ display: "block", fontSize: 11, fontWeight: 600 }}>TinyFish Search / Fetch</strong><span style={{ display: "block", color: "#7d8490", fontSize: 10, marginTop: 3 }}>Server-side integration point</span></span><span style={{ marginLeft: "auto" }} className="pill">PLANNED</span></div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+                      <input className="plain-input" aria-label="Research topic" placeholder="Research topic (or use prompt)" value={researchQuery} onChange={e => setResearchQuery(e.target.value)} />
+                      <button className="suggest-chip" style={{ whiteSpace: "nowrap" }} onClick={runResearch} disabled={researchLoading}>{researchLoading ? "Searching…" : "Research ↗"}</button>
+                    </div>
+                    {researchResult && <div style={{ marginTop: 12, borderTop: "1px solid #292d35", paddingTop: 12 }}>
+                      {researchResult.error ? <p role="alert" style={{ color: "#ffaaaa" }}>{researchResult.error}</p> : <>
+                        <div style={{ color: "#c3f36b", fontSize: 10, marginBottom: 8 }}>RESEARCH RESULTS FOR: {researchResult.query}</div>
+                        {researchResult.results?.length ? researchResult.results.map((item, index) => <div key={item.url ?? index} style={{ padding: "9px 0", borderBottom: "1px solid #252830" }}>
+                          {item.url ? <a href={item.url} target="_blank" rel="noreferrer" style={{ color: "#e7eddb", fontSize: 11, fontWeight: 700 }}>{item.title || item.url}</a> : <strong style={{ fontSize: 11 }}>{item.title || "Source"}</strong>}
+                          {item.snippet && <p style={{ color: "#8e94a1", fontSize: 10, lineHeight: 1.6, margin: "5px 0 0" }}>{item.snippet}</p>}
+                        </div>) : <p style={{ color: "#8e94a1", fontSize: 10 }}>Research endpoint responded, but no normalized result list was found. Review the configured provider response contract.</p>}
+                      </>}
+                    </div>}
                   </div>
                 </section>
               </div>
