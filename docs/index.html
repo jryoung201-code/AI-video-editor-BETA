@@ -57,7 +57,7 @@
 const $ = id => document.getElementById(id);
 const video=$("video"), fileInput=$("fileInput");
 let objectUrl=null, fileName="video", duration=0, exporting=false, rafId=0;
-const filters={none:"none",cinema:"saturate(1.12) contrast(1.12) brightness(.96)",mono:"grayscale(1)",warm:"sepia(.22) saturate(1.15)",cool:"hue-rotate(12deg) saturate(.95)",vivid:"saturate(1.45) contrast(1.08)"};
+const filters={none:"",cinema:"saturate(1.12) contrast(1.12) brightness(.96)",mono:"grayscale(1)",warm:"sepia(.22) saturate(1.15)",cool:"hue-rotate(12deg) saturate(.95)",vivid:"saturate(1.45) contrast(1.08)"};
 function time(v){if(!Number.isFinite(v))v=0;const m=Math.floor(v/60),s=v%60;return String(m).padStart(2,"0")+":"+s.toFixed(1).padStart(4,"0")}
 function say(text,kind=""){const e=$("exportStatus");e.textContent=text;e.className="status "+kind}
 function loaded(){return !!video.src && Number.isFinite(duration) && duration>0}
