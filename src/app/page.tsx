@@ -9,6 +9,8 @@ type Job = {
   createdAt: string;
   message: string;
 };
+type Shot = { index: number; durationSeconds: number; title: string; visual: string; camera: string; audio: string };
+type Storyboard = { prompt: string; style: string; durationSeconds: number; shots: Shot[]; note: string };
 
 const examples = [
   "A cinematic Minecraft survival base reveal at golden hour, sweeping camera movement, dramatic lighting",
@@ -23,6 +25,8 @@ export default function Home() {
   const [duration, setDuration] = useState("10");
   const [loading, setLoading] = useState(false);
   const [job, setJob] = useState<Job | null>(null);
+  const [storyboard, setStoryboard] = useState<Storyboard | null>(null);
+  const [storyboardLoading, setStoryboardLoading] = useState(false);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("generator");
 
@@ -51,6 +55,29 @@ export default function Home() {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function createStoryboard() {
+    setError("");
+    if (!prompt.trim()) {
+      setError("Write a prompt before building a storyboard.");
+      return;
+    }
+    setStoryboardLoading(true);
+    try {
+      const response = await fetch("/api/storyboard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, style, duration: Number(duration) }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Could not build storyboard.");
+      setStoryboard(data as Storyboard);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Storyboard creation failed.");
+    } finally {
+      setStoryboardLoading(false);
     }
   }
 
@@ -129,7 +156,10 @@ export default function Home() {
                       {(["16:9", "9:16", "1:1"] as const).map(r => <button key={r} className={"ratio " + (ratio === r ? "selected" : "")} onClick={() => setRatio(r)}><span className="ratio-shape" style={{ width: r === "9:16" ? 12 : r === "1:1" ? 17 : 25, height: r === "9:16" ? 20 : r === "1:1" ? 17 : 15 }} />{r}<div style={{ fontSize: 9, opacity: .65, marginTop: 4 }}>{r === "16:9" ? "Landscape" : r === "9:16" ? "Shorts / Reels" : "Square"}</div></button>)}
                     </div>
                   </div>
-                  <button className="generate-btn" onClick={generate} disabled={loading}>{loading ? "◌  Preparing project…" : <>✦ &nbsp; Create video project <span>↗</span></>}</button>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 9 }}>
+                    <button className="generate-btn" style={{ marginTop: 24 }} onClick={createStoryboard} disabled={storyboardLoading}>{storyboardLoading ? "◌  Building…" : <>▤ &nbsp; Build storyboard</>}</button>
+                    <button className="generate-btn" onClick={generate} disabled={loading}>{loading ? "◌  Preparing…" : <>✦ &nbsp; Create video project <span>↗</span></>}</button>
+                  </div>
                   {error && <div role="alert" style={{ color: "#ff9e9e", fontSize: 11, marginTop: 10 }}>{error}</div>}
                   <div className="notice">This creates a project request in the starter build. Actual MP4 generation becomes available once a video model provider is connected.</div>
                 </div>
@@ -145,6 +175,16 @@ export default function Home() {
                   </div>
                   <div className="meta-grid"><div className="meta"><span>Style</span><strong>{style}</strong></div><div className="meta"><span>Canvas</span><strong>{ratio}</strong></div><div className="meta"><span>Duration</span><strong>{duration}s</strong></div></div>
                   {job && <div className="job-message"><strong>Latest project · {job.id.slice(0, 8)}</strong><br />{job.message}</div>}
+                  {storyboard && <div className="job-message"><strong>Storyboard · {storyboard.shots.length} shots</strong>
+                    <div style={{ display: "grid", gap: 10, marginTop: 12 }}>
+                      {storyboard.shots.map(shot => <div key={shot.index} style={{ border: "1px solid #343842", borderRadius: 9, padding: 11 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginBottom: 7 }}><strong>{String(shot.index).padStart(2, "0")} / {shot.title}</strong><span className="field-help">{shot.durationSeconds}s</span></div>
+                        <p style={{ color: "#a3a9b4", lineHeight: 1.7, margin: "0 0 5px" }}>{shot.visual}</p>
+                        <p style={{ color: "#7e8490", lineHeight: 1.6, margin: 0 }}>Camera: {shot.camera}</p>
+                      </div>)}
+                    </div>
+                    <p style={{ color: "#8e94a1", marginTop: 12 }}>{storyboard.note}</p>
+                  </div>}
                 </section>
                 <section className="panel">
                   <div className="research">
