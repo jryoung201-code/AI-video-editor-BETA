@@ -36,7 +36,7 @@ h1 { font-size:clamp(30px,4vw,46px); line-height:1.04; letter-spacing:-2.5px; ma
 .panel-title { font-size:13px; font-weight:700; }
 .panel-sub { color:#7e8490; font-size:11px; margin-top:4px; }
 .panel-body { padding:20px; }
-.field-label { display:flex; justify-content:space-between; align-items:center; color:#dadd e3; font-size:11px; font-weight:700; margin-bottom:10px; }
+.field-label { display:flex; justify-content:space-between; align-items:center; color:#dadee6; font-size:11px; font-weight:700; margin-bottom:10px; }
 .field-help { color:#727886; font:10px "DM Mono",monospace; font-weight:400; }
 .prompt-box { position:relative; }
 .prompt-box textarea { width:100%; resize:vertical; min-height:150px; background:#0c0d11; color:#f1f3f7; border:1px solid #30333d; border-radius:11px; outline:none; padding:15px; font-size:13px; line-height:1.7; }
