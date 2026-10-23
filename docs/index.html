@@ -19,7 +19,7 @@
 <div class="editor-grid">
 <div class="left-stack">
 <section class="panel"><div class="panel-head"><div><div class="panel-title">Preview monitor</div><div class="panel-sub">Your footage and text overlays</div></div><span id="resolution" class="pill">NO MEDIA</span></div>
-<div class="stage" id="stage"><div id="empty" class="empty"><div class="empty-inner"><div class="upload-icon">↥</div><h2>Drop a video to start editing</h2><p>Import an MP4, WebM, or other browser-supported video. Your footage stays in this browser session.</p><button class="btn primary" id="emptyUpload">Choose video file</button></div></div><div id="videoWrap" class="video-wrap hidden"><video id="video" playsinline preload="metadata"></video><div id="overlay" class="stage-overlay"></div><div class="stage-label">FRAMEFORGE · PREVIEW</div></div><div id="youtubeWrap" class="youtube-wrap hidden"><iframe id="youtubeFrame" title="YouTube video preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><div id="youtubeNote" class="youtube-note hidden"><strong>YouTube preview mode.</strong> You can watch the linked video here, but YouTube does not provide the editor with the raw video file, so trimming, filters, and export are unavailable for this preview. If it is your video, download it from YouTube Studio and import the file to edit it.</div></div>
+<div class="stage" id="stage"><div id="empty" class="empty"><div class="empty-inner"><div class="upload-icon">↥</div><h2>Drop a video to start editing</h2><p>Import an MP4, WebM, or other browser-supported video. Your footage stays in this browser session.</p><button class="btn primary" id="emptyUpload">Choose video file</button></div></div><div id="videoWrap" class="video-wrap hidden"><video id="video" playsinline preload="metadata"></video><div id="overlay" class="stage-overlay"></div><div class="stage-label">FRAMEFORGE · PREVIEW</div></div><div id="youtubeWrap" class="youtube-wrap hidden"><iframe id="youtubeFrame" title="YouTube video preview" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe></div><div id="youtubeNote" class="youtube-note hidden"><strong>YouTube preview mode.</strong> YouTube does not provide the editor with the raw video file. If you own this video or have permission to edit it, you can record the visible preview below; recording depends on browser permissions and won’t bypass DRM or other playback restrictions. <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px"><button class="btn primary" id="recordYTBtn">● Record YouTube preview</button><span id="recordYTStatus" class="status" role="status">Choose this browser tab in the share picker.</span></div></div></div>
 <div class="transport"><button id="playBtn" aria-label="Play or pause" disabled>▶</button><span id="currentTime" class="time">00:00.0</span><input id="seek" class="seek" type="range" min="0" max="100" step=".1" value="0" disabled><span id="totalTime" class="time">00:00.0</span></div></section>
 <section class="panel"><div class="panel-head timeline-head"><div><div class="panel-title">Timeline</div><div class="panel-sub">Selected clip · trim handles define the export range</div></div><span id="clipLength" class="pill">0.0s selected</span></div><div class="panel-body">
 <div class="timeline-row"><div class="track-label">VIDEO 01</div><div class="track"><div class="clip" id="clip">Import a video to create a clip</div></div></div><div class="ruler"><span>00:00</span><span id="rulerMid">00:00</span><span id="rulerEnd">00:00</span></div>
@@ -189,6 +189,28 @@ $("smartHighlights").addEventListener("click",async()=>{
  }catch(err){$("smartStatus").textContent=err.message||"Could not analyze this video.";$("smartStatus").className="status error"}
  finally{button.disabled=!loaded()}
 });
+let ytStream=null,ytRecorder=null,ytChunks=[];
+$("recordYTBtn").addEventListener("click",async()=>{
+ const button=$("recordYTBtn"),status=$("recordYTStatus");
+ if(ytRecorder&&ytRecorder.state==="recording"){ytRecorder.stop();button.disabled=true;status.textContent="Finishing recording…";return}
+ if(!navigator.mediaDevices||!navigator.mediaDevices.getDisplayMedia||!window.MediaRecorder){status.textContent="Tab recording needs a supported desktop browser on HTTPS (try Chrome or Edge).";status.className="status error";return}
+ try{
+  status.textContent="In the browser picker, select this tab and enable tab audio if available.";
+  ytStream=await navigator.mediaDevices.getDisplayMedia({video:{frameRate:30},audio:true,preferCurrentTab:true});
+  ytChunks=[];ytRecorder=new MediaRecorder(ytStream);
+  ytRecorder.ondataavailable=e=>{if(e.data&&e.data.size)ytChunks.push(e.data)};
+  ytRecorder.onerror=()=>{status.textContent="Recording failed in this browser.";status.className="status error";button.disabled=false};
+  ytRecorder.onstop=()=>{
+   const blob=new Blob(ytChunks,{type:ytRecorder.mimeType||"video/webm"});
+   if(ytStream)ytStream.getTracks().forEach(t=>t.stop());
+   button.disabled=false;button.textContent="● Record YouTube preview";button.classList.remove("recording");
+   if(blob.size){importFile(new File([blob],"youtube-preview-recording.webm",{type:blob.type||"video/webm"}));status.textContent="Recording imported into the editor. You can now trim and export it.";status.className="status ok"}
+   else{status.textContent="No recording data captured. Try again and select this tab.";status.className="status error"}
+  };
+  ytStream.getVideoTracks()[0].addEventListener("ended",()=>{if(ytRecorder&&ytRecorder.state==="recording")ytRecorder.stop()});
+  ytRecorder.start(500);button.textContent="■ Stop recording";button.classList.add("recording");status.textContent="Recording this shared tab. Play the preview, then press Stop recording.";status.className="status ok";
+ }catch(err){status.textContent="Recording cancelled or unavailable: "+(err.message||"permission denied");status.className="status error"}
+});
 let tabStream=null,tabRecorder=null,tabChunks=[];
 $("recordTabBtn").addEventListener("click",async()=>{
  if(tabRecorder&&tabRecorder.state==="recording"){tabRecorder.stop();$("recordTabBtn").textContent="● Record browser tab";$("recordTabBtn").classList.remove("recording");return}
@@ -202,7 +224,7 @@ $("recordTabBtn").addEventListener("click",async()=>{
   tabRecorder.start(500);$("recordTabBtn").textContent="■ Stop recording";$("recordTabBtn").classList.add("recording");say("Recording started. Switch to the video tab you selected; click Stop recording here when finished.","ok");
  }catch(err){say("Recording cancelled or unavailable: "+(err.message||"browser permission denied"),"error")}
 });
-window.addEventListener("beforeunload",()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);if(tabStream)tabStream.getTracks().forEach(t=>t.stop())});
+window.addEventListener("beforeunload",()=>{if(objectUrl)URL.revokeObjectURL(objectUrl);if(tabStream)tabStream.getTracks().forEach(t=>t.stop());if(ytStream)ytStream.getTracks().forEach(t=>t.stop())});
 setDisabled(false);$("generateClips").disabled=true;updateClipDurationOptions();updatePreview();
 })();
 </script>
